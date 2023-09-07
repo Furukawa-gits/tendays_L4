@@ -1,25 +1,43 @@
 ﻿#include "Othello.h"
 #include <DxLib.h>
 
+// ファイルの読み込み
+#include <fstream>
+#include "../File/LoadCSV.h"
+
 Othello::Othello() :
 	cell{},
+	initCell{},
 	width(8),
-	height(6)
+	height(8)
 {
-	cell.reserve(static_cast<size_t>(width * height));
 }
 
 void Othello::Init()
 {
-	cell.resize(static_cast<size_t>(width * height));
+	cell.reserve(static_cast<size_t>(width * height));
+	initCell.reserve(cell.size());
 
-	cell[27] = Color::BLACK;
-	cell[36] = Color::BLACK;
+	//cell.resize(static_cast<size_t>(width * height));
 
-	cell[28] = Color::WHITE;
-	cell[35] = Color::WHITE;
+	//cell[9] = BLACK;
+	//cell[18] = BLACK;
+	//cell[27] = BLACK;
+	//cell[36] = BLACK;
+	//cell[45] = BLACK;
+	//cell[54] = BLACK;
+	//cell[63] = BLACK;
 
-	cell[37] = Color::HOLE;
+	//cell[7] = WHITE;
+	//cell[14] = WHITE;
+	//cell[21] = WHITE;
+	//cell[28] = WHITE;
+	//cell[35] = WHITE;
+	//cell[42] = WHITE;
+	//cell[49] = WHITE;
+	//cell[56] = WHITE;
+
+	//initCell = cell;
 }
 
 void Othello::Draw(int offsetX, int offsetY)
@@ -37,8 +55,8 @@ void Othello::Draw(int offsetX, int offsetY)
 		int x = i % width;
 		int y = i / width;
 
-		unsigned int color = GetColor(0x00, 0xFF, 0x00);
-		if ((x + y) % 2) color = GetColor(0x00, 0xCC, 0x00);
+		unsigned int color = GetColor(0x00, 0xF0, 0x00);
+		if ((x + y) % 2) color = GetColor(0x00, 0xC0, 0x00);
 
 		DrawBox(circleSize * x + offsetX, circleSize * y + offsetY,
 				circleSize * (x + 1) + offsetX, circleSize * (y + 1) + offsetY, color, true);
@@ -64,29 +82,14 @@ void Othello::Reset()
 {
 	for (size_t i = 0; i < cell.size(); i++)
 	{
-		if (i == 27 || i == 36)
-		{
-			cell[i] = Color::BLACK;
-		}
-		else if (i == 28 || i == 35)
-		{
-			cell[i] = Color::WHITE;
-		}
-		else if (i == 37)
-		{
-			cell[i] = Color::HOLE;
-		}
-		else
-		{
-			cell[i] = Color::EMPTY;
-		}
+		cell[i] = initCell[i];
 	}
 }
 
 int Othello::Put(int x, int y, Color color)
 {
 	int index = y * width + x;
-	if (cell[index] == Color::HOLE)
+	if (cell[index] != Color::EMPTY)
 	{
 		return 0;
 	}
@@ -110,11 +113,11 @@ int Othello::Put(int x, int y, Color color)
 			{
 				continue;
 			}
-			if (x + i < 0 || y + j < 0 || x + i >= width || y + j >= height)
+			if (x + j < 0 || y + i < 0 || x + j >= width || y + i >= height)
 			{
 				continue;
 			}
-			index = (y + j) * width + (x + i);
+			index = (y + i) * width + (x + j);
 			if (cell[index] != other)
 			{
 				continue;
@@ -123,10 +126,15 @@ int Othello::Put(int x, int y, Color color)
 			const int size = 8;
 			for (int s = 2; s < size; s++)
 			{
-				index += j * width + i;
+				if (x + (j * s) < 0 || y + (i * s) < 0 || x + (j * s) >= width || y + (i * s) >= height)
+				{
+					break;
+				}
+
+				index += i * width + j;
 				if (index >= 0 && index < cell.size())
 				{
-					if (cell[index] == Color::EMPTY)
+					if (cell[index] != Color::BLACK && cell[index] != Color::WHITE)
 					{
 						break;
 					}
@@ -139,7 +147,7 @@ int Othello::Put(int x, int y, Color color)
 
 						for (int n = 1; n < s; n++)
 						{
-							index += j * width + i;
+							index += i * width + j;
 							cell[index] = color;
 						}
 
@@ -151,6 +159,59 @@ int Othello::Put(int x, int y, Color color)
 	}
 
 	return count;
+}
+
+int Othello::Load(const std::string& filePath)
+{
+	if (filePath.empty())
+	{
+		return -1;
+	}
+
+	cell.clear();
+
+	std::ifstream ifs(filePath);
+	std::string str;
+
+	if (ifs.fail())
+	{
+		OutputDebugStringA("ファイルが開けません。\n");
+		return -1;
+	}
+
+	getline(ifs, str);
+	int size[] = { 0, 0 };
+	int i = 0;
+	for (auto s : str)
+	{
+		if (s == ',' || s == '\n')
+		{
+			i++;
+			continue;
+		}
+		else if (s >= '0' && s <= '9')
+		{
+			size[i] *= 10;
+			size[i] += s - '0';
+		}
+	}
+
+	width = size[0];
+	height = size[1];
+
+	int* cellArray = new int[(width * height)];
+	File::LoadMapChip(ifs, cellArray, width * height);
+
+	for (int i = 0; i < width * height; i++)
+	{
+		cell.push_back(static_cast<Color>(cellArray[i]));
+	}
+
+	initCell = cell;
+
+	delete[] cellArray;
+	ifs.close();
+	return 0;
 }
 
 Color Othello::GetCell(const size_t& index)
