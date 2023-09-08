@@ -161,6 +161,84 @@ int Othello::Put(int x, int y, Color color)
 	return count;
 }
 
+bool Othello::IsSkip(Color color)
+{
+	bool result = true;
+
+	for (int i = 0; i < width * height; i++)
+	{
+		if (result == false)
+		{
+			break;
+		}
+
+		if (cell[i] != Color::EMPTY)
+		{
+			continue;
+		}
+
+		Color other = Color::EMPTY; //相手の色
+		if (color == Color::BLACK)
+		{
+			other = Color::WHITE;
+		}
+		else if (color == Color::WHITE)
+		{
+			other = Color::BLACK;
+		}
+
+		int index = i;
+		int x = i % width;
+		int y = i / width;
+
+		for (int dirY = -1; dirY <= 1; dirY++)
+		{
+			for (int dirX = -1; dirX <= 1; dirX++)
+			{
+				if (dirY == 0 && dirX == 0)
+				{
+					continue;
+				}
+				if (x + dirX < 0 || y + dirY < 0 || x + dirX >= width || y + dirY >= height)
+				{
+					continue;
+				}
+				index = (y + dirY) * width + (x + dirX);
+				if (cell[index] != other)
+				{
+					continue;
+				}
+
+				const int size = 8;
+				for (int s = 2; s < size; s++)
+				{
+					if (x + (dirX * s) < 0 || y + (dirY * s) < 0 || x + (dirX * s) >= width || y + (dirY * s) >= height)
+					{
+						break;
+					}
+
+					index += dirY * width + dirX;
+					if (index >= 0 && index < cell.size())
+					{
+						if (cell[index] != Color::BLACK && cell[index] != Color::WHITE)
+						{
+							break;
+						}
+
+						if (cell[index] == color)
+						{
+							result = false;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
 int Othello::Load(const std::string& filePath)
 {
 	if (filePath.empty())
@@ -180,7 +258,7 @@ int Othello::Load(const std::string& filePath)
 	}
 
 	getline(ifs, str);
-	int size[] = { 0, 0 };
+	int num[] = { 0, 0, 0 };
 	int i = 0;
 	for (auto s : str)
 	{
@@ -191,13 +269,14 @@ int Othello::Load(const std::string& filePath)
 		}
 		else if (s >= '0' && s <= '9')
 		{
-			size[i] *= 10;
-			size[i] += s - '0';
+			num[i] *= 10;
+			num[i] += s - '0';
 		}
 	}
 
-	width = size[0];
-	height = size[1];
+	width = num[0];
+	height = num[1];
+	startColor = num[2];
 
 	int* cellArray = new int[(width * height)];
 	File::LoadMapChip(ifs, cellArray, width * height);
@@ -214,7 +293,7 @@ int Othello::Load(const std::string& filePath)
 	return 0;
 }
 
-Color Othello::GetCell(const size_t& index)
+Color Othello::GetCell(const size_t& index) const
 {
 	if (index < 0 || index >= cell.size())
 	{
@@ -222,4 +301,16 @@ Color Othello::GetCell(const size_t& index)
 	}
 
 	return cell[index];
+}
+
+Color Othello::GetStartColor() const
+{
+	if (startColor)
+	{
+		return Color::WHITE;
+	}
+	else
+	{
+		return Color::BLACK;
+	}
 }
