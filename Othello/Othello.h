@@ -1,24 +1,24 @@
 ﻿#pragma once
+#include "Cell.h"
 #include <vector>
 #include <string>
 
-enum Color
-{
-	EMPTY,
-	BLACK,
-	WHITE,
-	HOLE,
-	NONE = -1
-};
-
 class Othello
 {
-public:
+public: //サブクラス
+	enum Direction
+	{
+		LEFT,
+		RIGHT,
+		UP,
+		DOWN
+	};
+
+public: //定数
 	static const int circleSize = 90;
 
 private: //メンバ変数
-	std::vector<Color> cell;
-	std::vector<Color> initCell;
+	std::vector<Cell> cell;
 	int width;  //幅
 	int height; //高さ
 	bool startColor; //開始時の色
@@ -35,16 +35,18 @@ public: //メンバ関数
 	void Reset();
 
 	// 石を置く
-	int Put(int x, int y, Color color);
+	int Put(int x, int y, ColorFlag color);
+	// スキップ判定
+	bool IsSkip(ColorFlag color);
+
+	// デカマスの置き換え
+	int BigChange(int index, ColorFlag color);
 	// ステージ読み込み
 	int Load(const std::string& filePath);
-
-	// スキップ判定
-	bool IsSkip(Color color);
 
 	int GetWidth() const { return width; }
 	int GetHeight() const { return height; }
 	size_t GetSize() const { return cell.size(); }
-	Color GetCell(const size_t& index) const;
-	Color GetStartColor() const;
+	ColorFlag GetCell(int index) const;
+	ColorFlag GetStartColor() const;
 };
